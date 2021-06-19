@@ -4,7 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 )
+
+func UnixTimeNow() int64 {
+	return time.Now().Unix()
+}
 
 func SafeWriteFile(filename string, data *[]byte) error {
 	var tmpFilename string = fmt.Sprintf("%s.new", filename)
