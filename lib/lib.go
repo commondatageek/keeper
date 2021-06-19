@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -11,7 +12,7 @@ func UnixTimeNow() int64 {
 	return time.Now().Unix()
 }
 
-func SafeWriteFile(filename string, data *[]byte) error {
+func SafeWriteFile(filename string, data []byte) error {
 	var tmpFilename string = fmt.Sprintf("%s.new", filename)
 
 	// create or truncate file
@@ -23,13 +24,15 @@ func SafeWriteFile(filename string, data *[]byte) error {
 	}
 
 	// write to temporary file
-	writeN, writeErr := outFile.Write(*data)
+	writer := bufio.NewWriter(outFile)
+	writeN, writeErr := writer.Write(data)
 	if writeErr != nil {
 		return writeErr
 	}
-	if writeN != len(*data) {
-		return errors.New(fmt.Sprintf("%d bytes written of %d total bytes", writeN, len(*data)))
+	if writeN != len(data) {
+		return errors.New(fmt.Sprintf("%d bytes written of %d total bytes", writeN, len(data)))
 	}
+	writer.Flush()
 
 	// atomically replace original file with temporary file
 	if renameErr := os.Rename(tmpFilename, filename); renameErr != nil {
