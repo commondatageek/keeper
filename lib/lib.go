@@ -101,3 +101,26 @@ func (d *LocalDatabase) Write(database ItemList) (n int64, err error) {
 func (d *LocalDatabase) Read() error {
 	panic("LocalDatabase.Read() not yet implemented")
 }
+
+type WebSiteItem struct {
+	ItemType    string `json:"item_type"`
+	DateCreated int64  `json:"date_created"`
+	DateRead    int64  `json:"date_read"`
+	Url         string `json:"url"`
+	Read        bool   `json:"read"`
+}
+
+func NewWebSite(url string) *WebSiteItem {
+	return &WebSiteItem{
+		ItemType:    "web_site",
+		DateCreated: UnixTimeNow(),
+		DateRead:    -1,
+		Url:         url,
+		Read:        false,
+	}
+}
+
+func (w *WebSiteItem) MarkRead() {
+	w.Read = true
+	w.DateRead = UnixTimeNow()
+}
