@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"github.com/commondatageek/keeper/lib"
 	"log"
@@ -15,15 +15,15 @@ func main() {
 	}
 
 	var filename string = os.Args[1]
-	var data string = os.Args[2]
+	var url string = os.Args[2]
 
-	jsonBytes, marshalErr := json.Marshal(data)
-	if marshalErr != nil {
-		log.Fatalf("Could not marshal JSON: %s\n", marshalErr)
+	blah := []byte(url)
+	reader := bytes.NewReader(blah)
+
+	writeN, writeErr := lib.SafeWriteFile(filename, reader)
+	if writeErr != nil {
+		log.Fatalf("Error writing database file: %s", writeErr)
 	}
 
-	err := lib.SafeWriteFile(filename, &jsonBytes)
-	if err != nil {
-		log.Fatalf("Could not write file %s: %s\n", filename, err)
-	}
+	log.Printf("Wrote %d bytes\n", writeN)
 }

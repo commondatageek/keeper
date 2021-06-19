@@ -13,6 +13,7 @@ func UnixTimeNow() int64 {
 }
 
 func SafeWriteFile(filename string, data io.Reader) (int64, error) {
+	// write first to temporary file so as not to corrupt existing file
 	var tmpFilename string = fmt.Sprintf("%s.new", filename)
 
 	// create or truncate file
