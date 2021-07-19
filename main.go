@@ -5,33 +5,29 @@ import (
 	"github.com/commondatageek/keeper/lib"
 	"log"
 	"os"
-	"strconv"
 )
 
 func main() {
-	if len(os.Args) < 4 {
-		fmt.Fprintln(os.Stderr, "Usage: keeper {filename} {test-data} {number}")
+	if len(os.Args) < 3 {
+		fmt.Fprintln(os.Stderr, "Usage: keeper {filename} {url}")
 		os.Exit(1)
 	}
 
 	var filename string = os.Args[1]
 	var url string = os.Args[2]
-	var n string = os.Args[3]
 
-	intN, err := strconv.ParseInt(n, 10, 64)
-	if err != nil {
-		log.Fatalf("Could not convert %s to integer", n)
-	}
-
-	// construct ItemList
-	items := make(lib.ItemList, intN)
-	var i int64
-	for i = 0; i < intN; i++ {
-		var w lib.WebSite = lib.NewWebSite(url)
-		items[i] = w
-	}
-
+	// get list of current items
 	db := lib.NewLocalDatabase(filename)
+	items, readError := db.Read()
+	if readError != nil {
+		log.Fatalf("Could not read database: %s\n", readError)
+	}
+
+	// create and add our new item
+	newItem := lib.NewWebSite(url)
+	items = append(items, newItem)
+
+	// write items out to file
 	writeN, writeErr := db.Write(items)
 	if writeErr != nil {
 		log.Fatalf("Error writing database file: %s", writeErr)

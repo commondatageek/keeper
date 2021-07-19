@@ -3,6 +3,7 @@ package lib
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -77,6 +78,10 @@ func (d *LocalDatabase) Write(database ItemList) (n int64, err error) {
 
 	// while we stream each item
 	for _, x := range database {
+		var record Record
+		record.ItemType = xArch.ItemType()
+			ItemType: x.ItemType
+		}
 		jsonBytes, marshalError := json.Marshal(x)
 		if marshalError != nil {
 			return n, marshalError
@@ -98,8 +103,32 @@ func (d *LocalDatabase) Write(database ItemList) (n int64, err error) {
 	return n, result
 }
 
-func (d *LocalDatabase) Read() error {
-	panic("LocalDatabase.Read() not yet implemented")
+func (d *LocalDatabase) Read() (ItemList, error) {
+	items := make(ItemList, 0)
+
+	db, openErr := os.Open(d.Path)
+	if openErr != nil {
+		return nil, openErr
+	}
+	defer db.Close()
+
+	scanner := bufio.NewScanner(db)
+	for scanner.Scan() {
+		if scanErr := scanner.Err(); scanErr != nil {
+			return nil, scanErr
+		}
+		i, parseErr := ParseJsonItem(scanner.Text())
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		items = append(items, i)
+	}
+	return items, nil
+}
+
+type Record struct {
+	ItemType string      `json:"item_type"`
+	ItemData interface{} `json:"item_data"`
 }
 
 type WebSiteItem struct {
@@ -108,6 +137,11 @@ type WebSiteItem struct {
 	DateRead    int64  `json:"date_read"`
 	Url         string `json:"url"`
 	Read        bool   `json:"read"`
+}
+
+type WebSiteRecord struct {
+	ItemType string      `json:"item_type"`
+	ItemData WebSiteItem `json:"item_data"`
 }
 
 func NewWebSite(url string) *WebSiteItem {
@@ -124,3 +158,27 @@ func (w *WebSiteItem) MarkRead() {
 	w.Read = true
 	w.DateRead = UnixTimeNow()
 }
+
+// inspired by https://eagain.net/articles/go-dynamic-json/
+func ParseJsonItem(itemJson string) (interface{}, error) {
+	var itemData json.RawMessage
+	var env Record = Record{
+		ItemData: &itemData,
+	}
+	if unmarshalErr := json.Unmarshal([]byte(itemJson), &env); unmarshalErr != nil {
+		return nil, unmarshalErr
+	}
+	switch env.ItemType {
+	case "web_site":
+		var item WebSiteItem
+		if unmarshalErr := json.Unmarshal(itemData, &item); unmarshalErr != nil {
+			return nil, unmarshalErr
+		} else {
+			return item, nil
+		}
+	default:
+		err := errors.New(fmt.Sprintf("Attempted to parse unknown item type: %s", env.ItemType))
+		return nil, err
+	}
+}
+
